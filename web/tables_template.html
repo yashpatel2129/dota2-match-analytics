@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dota 2 Matches</title>
+<style>
+:root{--bg:#0f1218;--card:#181d27;--line:#262d3b;--tx:#e6e9ef;--mut:#8b95a8;--win:#4fb286;--loss:#e2605c;--acc:#5b8def}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,Segoe UI,sans-serif;padding:20px 16px}
+.wrap{max-width:1300px;margin:0 auto}
+h1{margin:0 0 4px;font-size:22px}.sub{color:var(--mut);margin-bottom:16px}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tab{background:var(--card);border:1px solid var(--line);color:var(--mut);padding:7px 14px;border-radius:6px;cursor:pointer}
+.tab.on{color:var(--tx);border-color:var(--acc)}
+.bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+input,select,button{background:var(--card);color:var(--tx);border:1px solid var(--line);padding:6px 10px;border-radius:6px;font:inherit}
+input{min-width:220px}
+button{cursor:pointer}button:disabled{opacity:.4;cursor:default}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:76vh}
+table{width:100%;border-collapse:collapse;white-space:nowrap}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}
+th{position:sticky;top:0;background:#1e2430;color:var(--mut);font-weight:600;cursor:pointer;user-select:none;z-index:1}
+th.on{color:var(--tx)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr:hover{background:#1d2330}
+.W{color:var(--win);font-weight:600}.L{color:var(--loss);font-weight:600}
+a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
+.info{color:var(--mut)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Dota 2 – All Matches</h1><div class="sub"><a href="index.html">← Back to analytics</a></div>
+  <div class="sub" id="sub"></div>
+  <div class="tabs">
+    <div class="tab on" data-t="matches">Matches</div>
+    <div class="tab" data-t="heroes">Heroes</div>
+    <div class="tab" data-t="peers">Players played with</div>
+  </div>
+  <div class="bar" id="bar"></div>
+  <div class="card"><table id="tbl"></table></div>
+  <div class="bar" style="margin-top:12px" id="pager"></div>
+</div>
+<script>
+const M=/*MATCHES*/, PEERS=/*PEERS*/, HEROES=/*HEROES*/;
+const HN={};HEROES.forEach(h=>HN[h.id]=h.localized_name);
+const MODES={0:'Unknown',1:'All Pick',2:'Captains Mode',3:'Random Draft',4:'Single Draft',5:'All Random',8:'Reverse CM',9:'Greeviling',11:'Mid Only',12:'Least Played',13:'Limited Heroes',14:'Compendium',15:'Custom',16:'Captains Draft',17:'Balanced Draft',18:'Ability Draft',19:'Event',20:'ARDM',21:'1v1 Mid',22:'All Draft',23:'Turbo',24:'Mutation',25:'Coaches Challenge'};
+const LOBBY={0:'Normal',1:'Practice',2:'Tournament',3:'Tutorial',4:'Co-op Bots',5:'Team Match',6:'Solo Queue',7:'Ranked',8:'Solo Mid 1v1',9:'Battle Cup'};
+const RANKS=['Unranked','Herald','Guardian','Crusader','Archon','Legend','Ancient','Divine','Immortal'];
+const rankName=r=>r?RANKS[Math.floor(r/10)]+(r%10?' '+(r%10):''):'';
+const pct=(w,n)=>n?+(100*w/n).toFixed(1):0;
+const pad=n=>String(n).padStart(2,'0');
+M.forEach(m=>{
+  m.win=(m.player_slot<128)===m.radiant_win;
+  m.d=new Date(m.played_at.replace(" ","T")+":00");
+  m.date=`${m.d.getFullYear()}-${pad(m.d.getMonth()+1)}-${pad(m.d.getDate())} ${pad(m.d.getHours())}:${pad(m.d.getMinutes())}`;
+  m.hero=HN[m.hero_id]||('Hero '+m.hero_id);
+  m.res=m.win?'Win':'Loss';
+  m.mode=MODES[m.game_mode]||('Mode '+m.game_mode);
+  m.lobby=LOBBY[m.lobby_type]||('Lobby '+m.lobby_type);
+  m.party=m.party_size||1;
+  m.kda=m.deaths?+((m.kills+m.assists)/m.deaths).toFixed(2):m.kills+m.assists;
+  m.dur=m.duration;
+  m.rank=m.average_rank||0;
+  m.side=m.player_slot<128?'Radiant':'Dire';
+});
+const fmtDur=s=>Math.floor(s/60)+':'+pad(s%60);
+
+// Aggregated hero rows
+const hmap={};
+M.forEach(m=>{const h=hmap[m.hero_id]||=({hero:m.hero,games:0,wins:0,k:0,d:0,a:0,dur:0,last:0});
+  h.games++;if(m.win)h.wins++;h.k+=m.kills;h.d+=m.deaths;h.a+=m.assists;h.dur+=m.duration;h.last=Math.max(h.last,m.start_time);});
+const H=Object.values(hmap).map(h=>({hero:h.hero,games:h.games,wins:h.wins,losses:h.games-h.wins,wr:pct(h.wins,h.games),
+  k:+(h.k/h.games).toFixed(1),d:+(h.d/h.games).toFixed(1),a:+(h.a/h.games).toFixed(1),kda:h.d?+((h.k+h.a)/h.d).toFixed(2):h.k+h.a,
+  dur:Math.round(h.dur/h.games),last:new Date(h.last*1000).toISOString().slice(0,10)}));
+const P=PEERS.map(p=>({name:p.personaname||String(p.account_id),id:p.account_id,wg:p.with_games,ww:p.with_win,wwr:pct(p.with_win,p.with_games),
+  ag:p.against_games,aw:p.against_win,awr:pct(p.against_win,p.against_games),games:p.games,last:p.last_played?new Date(p.last_played*1000).toISOString().slice(0,10):''}));
+
+const defs={
+ matches:{rows:M,sort:['start_time',-1],cols:[
+  ['Date','date',0,'start_time'],['Match ID','match_id',0,null,m=>`<a target="_blank" href="https://www.opendota.com/matches/${m.match_id}">${m.match_id}</a>`],
+  ['Hero','hero'],['Result','res',0,null,m=>`<span class="${m.win?'W':'L'}">${m.res}</span>`],['Side','side'],
+  ['K','kills',1],['D','deaths',1],['A','assists',1],['KDA','kda',1],['Length','dur',1,null,m=>fmtDur(m.dur)],
+  ['Mode','mode'],['Lobby','lobby'],['Party','party',1],['Avg rank','rank',1,null,m=>rankName(m.rank)]],
+  search:['hero','mode','lobby','date','match_id']},
+ heroes:{rows:H,sort:['games',-1],cols:[['Hero','hero'],['Games','games',1],['Wins','wins',1],['Losses','losses',1],['Win %','wr',1,null,h=>h.wr+'%'],
+  ['Avg K','k',1],['Avg D','d',1],['Avg A','a',1],['KDA','kda',1],['Avg length','dur',1,null,h=>fmtDur(h.dur)],['Last played','last']],search:['hero']},
+ peers:{rows:P,sort:['wg',-1],cols:[['Player','name'],
+  ['Games with','wg',1],['Wins with','ww',1],['Win % with','wwr',1,null,p=>p.wwr+'%'],['Games against','ag',1],['Wins against','aw',1],['Win % against','awr',1,null,p=>p.awr+'%'],['Last played','last']],search:['name']}
+};
+let tab='matches',sortKey=null,sortDir=-1,page=0,PS=100,q='',fRes='',fYear='',fMode='';
+const $=id=>document.getElementById(id);
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));
+  tab=t.dataset.t;sortKey=null;page=0;q='';fRes='';fYear='';fMode='';buildBar();render();});
+
+function buildBar(){
+  const years=[...new Set(M.map(m=>m.d.getFullYear()))].sort();
+  $('bar').innerHTML=`<input id="q" placeholder="Search…" value="${q}">`+
+   (tab==='matches'?`<select id="fRes"><option value="">All results</option><option>Win</option><option>Loss</option></select>
+    <select id="fYear"><option value="">All years</option>${years.map(y=>`<option>${y}</option>`).join('')}</select>
+    <select id="fMode"><option value="">All modes</option>${[...new Set(M.map(m=>m.mode))].map(x=>`<option${x===fMode?' selected':''}>${x}</option>`).join('')}</select>`:'')+
+   `<span class="info" id="cnt"></span>`;
+  $('q').oninput=e=>{q=e.target.value.toLowerCase();page=0;render();};
+  if($('fRes')){$('fMode').onchange=e=>{fMode=e.target.value;page=0;render();};$('fRes').onchange=e=>{fRes=e.target.value;page=0;render();};$('fYear').onchange=e=>{fYear=e.target.value;page=0;render();};}
+}
+function render(){
+  const D=defs[tab];
+  let rows=D.rows;
+  if(q)rows=rows.filter(r=>D.search.some(k=>String(r[k]).toLowerCase().includes(q)));
+  if(fRes)rows=rows.filter(r=>r.res===fRes);
+  if(fYear)rows=rows.filter(r=>r.d.getFullYear()==fYear);
+  if(fMode)rows=rows.filter(r=>r.mode===fMode);
+  const [dk,dd]=D.sort;const k=sortKey||dk,dir=sortKey?sortDir:dd;
+  const col=D.cols.find(c=>(c[3]||c[1])===k)||D.cols[0];
+  rows=[...rows].sort((a,b)=>{const x=a[k],y=b[k];return (x>y?1:x<y?-1:0)*dir;});
+  const pages=Math.max(1,Math.ceil(rows.length/PS));page=Math.min(page,pages-1);
+  const slice=rows.slice(page*PS,page*PS+PS);
+  $('tbl').innerHTML='<thead><tr>'+D.cols.map(c=>{const key=c[3]||c[1];
+    return `<th class="${c[2]?'n':''} ${key===k?'on':''}" data-k="${key}">${c[0]}${key===k?(dir<0?' ▼':' ▲'):''}</th>`}).join('')+'</tr></thead><tbody>'+
+    slice.map(r=>'<tr>'+D.cols.map(c=>`<td class="${c[2]?'n':''}">${c[4]?c[4](r):r[c[1]]}</td>`).join('')+'</tr>').join('')+'</tbody>';
+  $('tbl').querySelectorAll('th').forEach(th=>th.onclick=()=>{const key=th.dataset.k;
+    if(sortKey===key)sortDir*=-1;else{sortKey=key;sortDir=-1;}page=0;render();});
+  $('cnt').textContent=`${rows.length.toLocaleString()} rows`+(tab==='matches'&&rows.length?` · ${pct(rows.filter(r=>r.win).length,rows.length)}% win rate`:'');
+  $('pager').innerHTML=pages>1?`<button id="pv" ${page==0?'disabled':''}>◀ Prev</button><span class="info">Page ${page+1} / ${pages}</span><button id="nx" ${page>=pages-1?'disabled':''}>Next ▶</button>`:'';
+  if(pages>1){$('pv').onclick=()=>{page--;render();};$('nx').onclick=()=>{page++;render();};}
+}
+$('sub').textContent=`${M.length.toLocaleString()} matches · click a column header to sort`;
+buildBar();render();
+</script>
+</body>
+</html>

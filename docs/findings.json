@@ -1,0 +1,408 @@
+{
+  "dataset": {
+    "bonferroni_alpha": 0.0071,
+    "headline_tests": 7,
+    "matches": 6853,
+    "first_game": "2017-11-30",
+    "last_game": "2026-10-12",
+    "unknown_party_size_pct": 25.5,
+    "turbo_share_pct": 49.6
+  },
+  "findings": [
+    {
+      "id": "overall",
+      "title": "Am I actually better than a coin flip?",
+      "question": "Is my overall win rate different from 50%?",
+      "method": "Exact binomial test against p=0.5, Wilson 95% confidence interval.",
+      "n": 6853,
+      "win_rate": 50.4,
+      "ci95": [
+        49.2,
+        51.6
+      ],
+      "p": 0.5459,
+      "significant": false,
+      "takeaway": "50.4% over 6,853 games (95% CI 49.2-51.6%): NOT statistically significant from 50%. Matchmaking aims for 50%, so a long-run result this close to it is expected - the real signal is in the details below."
+    },
+    {
+      "id": "modes",
+      "title": "Ranked vs Turbo",
+      "question": "Do I perform differently in Turbo than in ranked All Draft?",
+      "method": "Chi-square test of independence on win/loss by mode; descriptive stats per mode.",
+      "by_mode": {
+        "Ranked/All Draft": {
+          "n": 3336,
+          "win_rate": 49.8,
+          "ci95": [
+            48.1,
+            51.5
+          ],
+          "avg_gpm": 457,
+          "avg_kda": 5.31,
+          "avg_minutes": 43.1
+        },
+        "Turbo": {
+          "n": 3401,
+          "win_rate": 51.0,
+          "ci95": [
+            49.4,
+            52.7
+          ],
+          "avg_gpm": 849,
+          "avg_kda": 3.93,
+          "avg_minutes": 26.5
+        }
+      },
+      "p": 0.3034,
+      "significant": false,
+      "takeaway": "Win rates are 49.8% (ranked) vs 51.0% (turbo): NOT statistically significant. But the games are very different - Turbo averages 26.5 min and 849 GPM vs 43.1 min and 457 GPM - so GPM/XPM must never be compared across modes."
+    },
+    {
+      "id": "momentum",
+      "title": "Tilt, momentum and 'win-trading'",
+      "question": "Does winning (or losing) the previous game in the same session change my odds in the next one?",
+      "method": "Compare win rates after a win vs after a loss (chi-square), then logistic regression controlling for game mode and year, then a dose-response check on streak length (clipped at +/-4). Only consecutive games <2h apart are used.",
+      "naive": {
+        "after_loss": {
+          "n": 2155,
+          "win_rate": 53.2,
+          "ci95": [
+            51.1,
+            55.3
+          ]
+        },
+        "after_win": {
+          "n": 2181,
+          "win_rate": 48.3,
+          "ci95": [
+            46.2,
+            50.4
+          ]
+        }
+      },
+      "naive_p": 0.0016,
+      "controlled": {
+        "odds_ratio": 0.816,
+        "ci95": [
+          0.724,
+          0.92
+        ],
+        "p": 0.0009
+      },
+      "per_streak_step": {
+        "odds_ratio": 0.953,
+        "ci95": [
+          0.919,
+          0.989
+        ],
+        "p": 0.0102
+      },
+      "robustness": {
+        "mode: Ranked/All Draft": {
+          "n": 1626,
+          "odds_ratio": 0.827,
+          "ci95": [
+            0.68,
+            1.004
+          ],
+          "p": 0.0555
+        },
+        "mode: Turbo": {
+          "n": 2710,
+          "odds_ratio": 0.823,
+          "ci95": [
+            0.708,
+            0.957
+          ],
+          "p": 0.0115
+        },
+        "gap < 30 min since previous game": {
+          "n": 3776,
+          "odds_ratio": 0.795,
+          "ci95": [
+            0.7,
+            0.903
+          ],
+          "p": 0.0004
+        },
+        "gap >= 30 min since previous game": {
+          "n": 560,
+          "odds_ratio": 1.044,
+          "ci95": [
+            0.75,
+            1.455
+          ],
+          "p": 0.797
+        },
+        "period: 2017-2020": {
+          "n": 1248,
+          "odds_ratio": 1.087,
+          "ci95": [
+            0.87,
+            1.358
+          ],
+          "p": 0.4648
+        },
+        "period: 2021": {
+          "n": 816,
+          "odds_ratio": 0.875,
+          "ci95": [
+            0.665,
+            1.152
+          ],
+          "p": 0.3418
+        },
+        "period: 2022": {
+          "n": 595,
+          "odds_ratio": 0.681,
+          "ci95": [
+            0.493,
+            0.94
+          ],
+          "p": 0.0195
+        },
+        "period: 2023": {
+          "n": 638,
+          "odds_ratio": 0.612,
+          "ci95": [
+            0.447,
+            0.836
+          ],
+          "p": 0.0021
+        },
+        "period: 2024": {
+          "n": 463,
+          "odds_ratio": 0.903,
+          "ci95": [
+            0.625,
+            1.304
+          ],
+          "p": 0.5857
+        },
+        "period: 2025-2026": {
+          "n": 576,
+          "odds_ratio": 0.61,
+          "ci95": [
+            0.438,
+            0.848
+          ],
+          "p": 0.0033
+        }
+      },
+      "periods_with_same_direction": "5 of 6",
+      "caveats": "Observational data: I only see the next game if I chose to keep playing (selection bias), and opponents/teammates are not observed. 'Matchmaking balances results' is a hypothesis consistent with the data, not something this dataset can prove.",
+      "significant": true,
+      "takeaway": "After a loss I win 53.2%, after a win 48.3% (naive p=0.002). With controls the odds ratio for 'won the previous game' is 0.816 (95% CI 0.724-0.92, p=0.0009): statistically significant. The direction is opposite to 'tilt' and it replicates in both modes and 5 of 6 time periods, but vanishes when games are >=30 min apart - consistent with matchmaking pulling back-to-back results towards 50%."
+    },
+    {
+      "id": "fatigue",
+      "title": "Does playing more in a day make me worse?",
+      "question": "Is the Nth game of the day less likely to be a win?",
+      "method": "Logistic regression: win ~ game number in day (capped at 10) + mode + year.",
+      "per_extra_game": {
+        "odds_ratio": 0.987,
+        "ci95": [
+          0.967,
+          1.008
+        ],
+        "p": 0.2163
+      },
+      "first_game_win_rate": 50.3,
+      "game6plus_win_rate": 48.9,
+      "significant": false,
+      "takeaway": "Each extra game in a day changes my odds by a factor of 0.987 (95% CI 0.967-1.008, p=0.2163): NOT statistically significant. First game of the day 50.3% vs 6th+ game 48.9%."
+    },
+    {
+      "id": "party",
+      "title": "Is it better to play with friends?",
+      "question": "Do I win more in 3+ player stacks than solo / duo?",
+      "method": "Logistic regression: win ~ (party size >= 3) + mode + year. Games where OpenDota has no party_size (1,748 games, 26%) are excluded, not assumed solo.",
+      "by_party": {
+        "3+ stack": {
+          "n": 2213,
+          "win_rate": 52.2,
+          "ci95": [
+            50.1,
+            54.3
+          ]
+        },
+        "duo": {
+          "n": 522,
+          "win_rate": 49.2,
+          "ci95": [
+            45.0,
+            53.5
+          ]
+        },
+        "solo": {
+          "n": 2292,
+          "win_rate": 49.3,
+          "ci95": [
+            47.3,
+            51.4
+          ]
+        }
+      },
+      "stack_effect": {
+        "odds_ratio": 1.073,
+        "ci95": [
+          0.926,
+          1.243
+        ],
+        "p": 0.3514
+      },
+      "significant": false,
+      "takeaway": "3+ stacks win 52.2% vs solo 49.3%. After controls the odds ratio is 1.073 (95% CI 0.926-1.243, p=0.3514): NOT statistically significant."
+    },
+    {
+      "id": "heroes",
+      "title": "Which heroes am I genuinely good (or bad) at?",
+      "question": "Do any hero win rates differ from my baseline by more than luck?",
+      "method": "Per-hero exact binomial test vs my overall win rate for heroes with >=20 games, Benjamini-Hochberg FDR correction across 70 tests, and empirical-Bayes shrinkage (Beta prior, strength k=518 pseudo-games) so that a hero with 12 games and a 75% win rate is not ranked above one with 400 games and 56%.",
+      "prior_strength_k": 518.3,
+      "estimated_true_sd_pct_points": 2.19,
+      "heroes_tested": 70,
+      "significant_before_correction": 4,
+      "significant_after_correction": 0,
+      "best": [
+        {
+          "hero": "Viper",
+          "games": 117,
+          "raw_win_rate": 64.1,
+          "shrunk_win_rate": 52.9,
+          "p": 0.003,
+          "p_adj": 0.2114
+        },
+        {
+          "hero": "Zeus",
+          "games": 110,
+          "raw_win_rate": 60.9,
+          "shrunk_win_rate": 52.2,
+          "p": 0.0283,
+          "p_adj": 0.4957
+        },
+        {
+          "hero": "Spectre",
+          "games": 151,
+          "raw_win_rate": 57.6,
+          "shrunk_win_rate": 52.0,
+          "p": 0.0871,
+          "p_adj": 0.7624
+        },
+        {
+          "hero": "Void Spirit",
+          "games": 378,
+          "raw_win_rate": 54.0,
+          "shrunk_win_rate": 51.9,
+          "p": 0.1652,
+          "p_adj": 0.9379
+        },
+        {
+          "hero": "Outworld Destroyer",
+          "games": 252,
+          "raw_win_rate": 54.8,
+          "shrunk_win_rate": 51.8,
+          "p": 0.1663,
+          "p_adj": 0.9379
+        }
+      ],
+      "worst": [
+        {
+          "hero": "Magnus",
+          "games": 260,
+          "raw_win_rate": 41.9,
+          "shrunk_win_rate": 47.5,
+          "p": 0.0075,
+          "p_adj": 0.2639
+        },
+        {
+          "hero": "Tinker",
+          "games": 269,
+          "raw_win_rate": 42.8,
+          "shrunk_win_rate": 47.8,
+          "p": 0.0146,
+          "p_adj": 0.3402
+        },
+        {
+          "hero": "Ember Spirit",
+          "games": 232,
+          "raw_win_rate": 44.4,
+          "shrunk_win_rate": 48.5,
+          "p": 0.0761,
+          "p_adj": 0.7624
+        },
+        {
+          "hero": "Rubick",
+          "games": 90,
+          "raw_win_rate": 43.3,
+          "shrunk_win_rate": 49.3,
+          "p": 0.2059,
+          "p_adj": 0.9379
+        },
+        {
+          "hero": "Legion Commander",
+          "games": 72,
+          "raw_win_rate": 44.4,
+          "shrunk_win_rate": 49.6,
+          "p": 0.3465,
+          "p_adj": 0.9379
+        }
+      ],
+      "significant": false,
+      "takeaway": "Of 70 heroes with >=20 games, 4 look 'significant' at p<0.05 before correcting for multiple comparisons but only 0 survive FDR correction (about 4 false positives are expected by chance alone). After removing sampling noise, the genuine spread in my hero win rates is only about 2.2 percentage points (SD), so shrinkage pulls every hero strongly toward 50.4%."
+    },
+    {
+      "id": "hot_hours",
+      "title": "Is there a 'best time to play'?",
+      "question": "Are some hour/weekday slots genuinely better, or is the heatmap just noise?",
+      "method": "Permutation test: shuffle win/loss labels 2,000 times and compare the most extreme of the 138 hour x weekday cells (n>=20) to what pure chance produces. Plus a chi-square on four pre-defined dayparts.",
+      "max_abs_z_observed": 2.96,
+      "permutation_p": 0.3065,
+      "dayparts": {
+        "night 0-5": {
+          "n": 1832,
+          "win_rate": 49.8
+        },
+        "morning 6-11": {
+          "n": 1131,
+          "win_rate": 52.8
+        },
+        "afternoon 12-17": {
+          "n": 2721,
+          "win_rate": 50.5
+        },
+        "evening 18-23": {
+          "n": 1169,
+          "win_rate": 48.7
+        }
+      },
+      "daypart_p": 0.2405,
+      "significant": false,
+      "takeaway": "The hottest/coldest hour-weekday cell has |z|=2.96; random shuffling produces a cell that extreme 31% of the time (permutation p=0.306): NOT statistically significant. Dayparts: p=0.241. Treat the heatmap colours as noise - picking 'lucky hours' would be fooling myself."
+    },
+    {
+      "id": "improvement",
+      "title": "Am I getting better over time?",
+      "question": "In ranked All Draft, do my win rate or KDA trend with time?",
+      "method": "Logistic regression win ~ years since first game; OLS kda ~ years. Ranked only (Turbo would confound).",
+      "winrate_trend": {
+        "odds_ratio": 0.994,
+        "ci95": [
+          0.959,
+          1.03
+        ],
+        "p": 0.7357
+      },
+      "kda_trend": {
+        "slope_per_year": 0.096,
+        "ci95": [
+          -0.008,
+          0.199
+        ],
+        "p": 0.0696
+      },
+      "significant": false,
+      "takeaway": "Win-rate odds change by x0.994 per year (p=0.7357: NOT statistically significant). KDA changes by +0.096 per year (p=0.0696: NOT statistically significant). Win rate is a poor skill metric here because matchmaking adjusts opponents to keep me near 50%."
+    }
+  ]
+}

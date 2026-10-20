@@ -6,7 +6,7 @@ An end-to-end data project on my own Dota 2 history (Nov 2017 – Oct 2026): an 
 
 I started by building a normal dashboard. The charts were full of convincing patterns, so I added the hypothesis-testing layer to find out which of them survive scrutiny. **Most don't — and learning to tell the difference was the actual point of the project.**
 
-**Live dashboard:** *(enable GitHub Pages on the `docs/` folder and paste the link here)*
+**Live dashboard:** https://yashpatel2129.github.io/dota2-match-analytics/
 
 ---
 
